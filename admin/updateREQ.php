@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($filedUpdate)) {
             $query2 =
                 "UPDATE items
-                    SET (" . implode(',', $filedUpdate) . ")
+                    SET " . implode(',', $filedUpdate) . "
                     WHERE id = :id";
             $stmt = $db->prepare($query2);
             $stmt->execute($valueToBind);
