@@ -77,8 +77,7 @@ Database::disconnect();
                                         ?>
                                             <tr>
                                                 <th scope="row">
-                                                    <a href="#"
-                                                        onclick="deleteProduct(<?= $productCart['id'] ?>)">
+                                                    <a href="deleteProduct.php?id=<?= $productCart['id'] ?>">
                                                         <i class="bi bi-archive"></i>
                                                     </a>
                                                 </th>

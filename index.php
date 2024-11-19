@@ -26,8 +26,13 @@ $query = "SELECT * FROM categories";
 $categs = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
 
 // récupérer les produits
-$query = "SELECT * FROM items";
-$products = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+$query2 = "SELECT * FROM items";
+$products = $db->query($query2)->fetchAll(PDO::FETCH_ASSOC);
+
+$query3 = "SELECT * FROM boisson";
+$stmt = $db->prepare($query3);
+$stmt->execute();
+$boissons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 Database::disconnect();
 
@@ -96,7 +101,34 @@ Database::disconnect();
                                         <div class="caption">
                                             <h4><?= $product['name'] ?></h4>
                                             <p><?= $product['description'] ?></p>
-                                            <a href="panierREQ.php?id_item=<?= $product['id'] ?>&prix=<?= $product['price'] ?>" class="btn btn-order" role="button"><span class="bi-cart-fill"></span> Commander</a>
+
+                                            <?php
+                                            if ($product['choice'] == 1) {
+                                            ?>
+
+                                                <select class="form-control" id="taille<?= $product['id'] ?>" name="taille">
+
+                                                <?php
+
+                                                foreach ($boissons as $taille) {
+                                                    if ($product['category'] == $taille['id_category']) {
+                                                        echo "<option value='" . $taille['taille'] . "'>" . $taille['taille'] . "</option>";
+                                                    }
+                                                }
+
+                                                $query3 = "SELECT * FROM choix WHERE id_item = :id";
+                                                $stmt = $db->prepare($query3);
+                                                $stmt->execute([":id" => $product['id']]);
+                                                $choix = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                                                foreach ($choix as $gout) {
+                                                    echo "<option value='" . $gout['nom_choix'] . "'>" . $gout['nom_choix'] . "</option>";
+                                                }
+                                            }
+                                                ?>
+                                                </select>
+                                                <br>
+                                                <a href="panierREQ.php?id_item=<?= $product['id'] ?>&prix=<?= $product['price'] ?>" class="btn btn-order" role="button"><span class="bi-cart-fill"></span> Commander</a>
                                         </div>
                                     </div>
                                 </div>

@@ -57,7 +57,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <td width=340>
                 <a class="btn btn-secondary" href="view.php?id=<?= $product['id'] ?>"><span class="bi-eye"></span> Voir</a>
                 <a class="btn btn-primary" href="update.php?id=<?= $product['id'] ?>"><span class="bi-pencil"></span> Modifier</a>
-                <a class="btn btn-danger" href="delete.html"><span class="bi-x"></span> Supprimer</a>
+                <a class="btn btn-danger" href="delete.php?id=<?= $product['id'] ?>"><span class="bi-x"></span> Supprimer</a>
               </td>
             </tr>
           <?php } ?>
