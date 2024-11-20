@@ -2,60 +2,81 @@
 require 'db.php';
 session_start();
 
-$db = Database::connect();
+// Fonction pour nettoyer les entrées utilisateur
+function cleanInput($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Validation des entrées
+$errors = [];
 
-    $mail = htmlspecialchars($_POST['mail']);
-    $mdp = $_POST['mdp'];
-    // var_dump($mdp, $mail);
-    // die();
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Nettoyage et validation de l'email
+    $email = cleanInput($_POST['mail']);
+    if (empty($email)) {
+        $errors[] = "L'email est requis";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Format d'email invalide";
+    }
 
-    if (filter_var($mail, FILTER_VALIDATE_EMAIL) && !empty($mdp)) {
-        // récupérer dans la base de donnée et vérifier si le mail et le mot de passe correspondent aux valeurs dans la base de données
-        $query = "SELECT * FROM users WHERE email = :email";
-        $stmt = $db->prepare($query);
-        $stmt->execute([':email' => $mail]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!empty($user)) {
-            // var_dump($mdp, $user['password']);
-            // die();
-            $mdpVerif = password_verify($mdp, $user['password']);
-            if ($mdpVerif) {
-                $_SESSION['user_mail'] = $mail;
+    // Validation du mot de passe
+    $password = $_POST['mdp'];
+    if (empty($password)) {
+        $errors[] = "Le mot de passe est requis";
+    }
+
+    // Si pas d'erreurs, procéder à la connexion
+    if (empty($errors)) {
+        try {
+            $db = Database::connect();
+            
+            // Vérifier les identifiants
+            $query = "SELECT * FROM users WHERE email = :email";
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(':email', $email);
+            $stmt->execute();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user && password_verify($password, $user['password'])) {
+                // Créer la session utilisateur
+                $_SESSION['user_mail'] = $email;
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['user_role'] = $user['role'];
 
-                $query2 = "SELECT * FROM panier WHERE userTemp = :userTemp";
-                $stmt = $db->prepare($query2);
-                $stmt->execute([':userTemp' => $_COOKIE['userTemp']]);
-                $userCart = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                if (!empty($userCart)) {
-                    foreach ($userCart as $product) {
-                        $query3 = "UPDATE panier SET userTemp = :userId";
-                        $stmt = $db->prepare($query3);
-                        $stmt->execute([':userId' => $_SESSION['user_id']]);
-                    }
+                // Transférer le panier temporaire vers le compte utilisateur
+                if (isset($_COOKIE['userTemp'])) {
+                    $userTemp = $_COOKIE['userTemp'];
+                    
+                    // Mettre à jour les articles du panier temporaire
+                    $updateQuery = "UPDATE panier SET userTemp = :userId WHERE userTemp = :userTemp";
+                    $updateStmt = $db->prepare($updateQuery);
+                    $updateStmt->bindParam(':userId', $user['id']);
+                    $updateStmt->bindParam(':userTemp', $userTemp);
+                    $updateStmt->execute();
                 }
 
                 $registered = "Vous êtes connecté";
                 header('Location: ' . $_SERVER['HTTP_REFERER'] . '?registered=' . $registered);
                 exit();
             } else {
-                $incorrect = "Erreur, le mot de passe ne correspond pas";
+                $incorrect = "Email ou mot de passe incorrect";
                 header('Location: inscription.php?incorrect=' . $incorrect);
                 exit();
             }
-        } else {
-            $incorrect = "Aucun compte n'existe avec cet email";
+        } catch (PDOException $e) {
+            $incorrect = "Erreur de connexion à la base de données";
             header('Location: inscription.php?incorrect=' . $incorrect);
             exit();
         }
+        
+        Database::disconnect();
     } else {
-        $incorrect = "Veuillez vérifier vos champs";
+        $incorrect = implode(", ", $errors);
         header('Location: inscription.php?incorrect=' . $incorrect);
         exit();
     }
 }
-Database::disconnect();
+?>
